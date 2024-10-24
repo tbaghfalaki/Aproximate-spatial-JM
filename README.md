@@ -3,3 +3,7 @@ On this page, you can access the R code accompanying our paper titled "Approxima
 
 ## Note
 The shapefile of Brazil and a portion of the dataset are also available.
+
+
+### Reference 
+Baghfalaki, T. Ganjali, M. & Martins, R. (2024). Approximate Bayesian inference for joint partially linear modeling of longitudinal measurements and spatial time-to-event data. *Revised*.
