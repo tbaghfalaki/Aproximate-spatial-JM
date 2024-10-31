@@ -58,3 +58,71 @@ model {
   tau.car ~ dgamma(0.5, 0.0005)    
   sigma.car <- 1 / tau.car
 }
+
+
+
+
+
+
+
+model {
+  
+  # Longitudinal model
+  for (i in 1:N) {
+    # Likelihood for the longitudinal response
+    Y[i] ~ dnorm(muy[i], tauz)  # Normal distribution for response Y
+    # Mean structure of Y[i]
+    muy[i] <- beta1[1] + beta1[2] * gender[i] + beta1[3] * age[i] + beta1[4] * prevoi[i] +
+              U[id[i], 1] + U[id[i], 2] * long.times[i] + inprod(betas[], SS[i, ])
+  }
+  
+  # Survival model
+  for (i in 1:n) {
+    # Random effects for survival analysis
+    U[i, 1:2] ~ dmnorm(U0[], tauU[,])  # (U_i1, U_i2) ~ N_2(0, sigma)
+    
+    # Likelihood for the survival response
+    surt[i] ~ dweib(rho, mut[i]) I(surt.cen[i],)  # Weibull distribution with censoring
+    
+    # Log-linear model for the mean of the survival time
+    log(mut[i]) <- beta3[1] + beta3[2] * genders[i] + beta3[3] * ages[i] + beta3[4] * prevois[i] +
+                   gamma1 * U[i, 1] + gamma2 * U[i, 2] + W[uf.res[i]]
+  }
+  
+  # Hyperparameters for the longitudinal response
+  sigmaz <- 1 / tauz  # Variance from precision
+  tauz ~ dgamma(0.1, 0.1)  # Prior for precision of the longitudinal model
+  
+  # Priors for fixed effects in the longitudinal model
+  for (k in 1:4) {
+    beta1[k] ~ dnorm(0, 0.01)  # Priors for beta coefficients (longitudinal)
+    beta3[k] ~ dnorm(0, 0.01)  # Priors for beta coefficients (survival model)
+  }
+  
+  # Priors for additional effects
+  for (k in 1:dimss) {
+    betas[k] ~ dnorm(0, 0.01)  # Priors for betas influencing longitudinal means
+  }
+  
+  # Random effects covariance matrix
+  tauU[1:2, 1:2] ~ dwish(V[,], 5)  # Wishart distribution for precision matrix
+  sigmaU[1:2, 1:2] <- inverse(tauU[,])  # Inverse of the precision matrix
+  rhoo <- sigmaU[1, 2] / sqrt(sigmaU[1, 1] * sigmaU[2, 2])  # Correlation between random effects
+  
+  # Priors for gamma coefficients
+  gamma1 ~ dnorm(0, 0.001)  # Prior for gamma1
+  gamma2 ~ dnorm(0, 0.001)  # Prior for gamma2
+  
+  # Prior for the shape parameter of the Weibull distribution
+  rho ~ dgamma(0.1, 0.1)  # Adjusted for meaningful prior, ensure it's proper
+  
+  # Conditional Autoregressive (CAR) model
+  for (i in 1:sum.numneighbors) {
+    weights[i] <- 1  # Uniform weights for neighbors
+  }
+  
+  # Prior for CAR model
+  W[1:n.uf.res] ~ car.normal(adj[], weights[], numneighbors[], tau.car)  # CAR structure
+  tau.car ~ dgamma(0.1, 0.1)  # Prior for CAR precision, adjusting shape and rate for meaningfulness
+  sigma.car <- 1 / tau.car  # Variance from CAR precision
+}
